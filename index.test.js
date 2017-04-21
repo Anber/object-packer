@@ -153,16 +153,3 @@ test('tracker', () => {
         c: 'bar',
     });
 });
-
-test.only('doc', () => {
-    class TestClass {
-        @packable.flag
-        flag = false;
-
-        @packable.external
-        name = 'new name'
-    }
-
-    expect(pack(new TestClass())).toEqual(["MiOX", {"name": "new name"}]);
-    // expect(unpack(AnotherClass, 'kRm5', {}).itemFromCollection).toEqual('new item');
-});
