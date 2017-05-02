@@ -153,3 +153,15 @@ test('tracker', () => {
         c: 'bar',
     });
 });
+
+test('exception', () => {
+    const onChange = jest.fn();
+    const onError = jest.fn();
+    instance::track(onChange, onError);
+    expect(onChange).not.toBeCalled();
+    expect(onError).not.toBeCalled();
+
+    instance.i = undefined;
+    expect(onChange).not.toBeCalled();
+    expect(onError).toHaveBeenCalledTimes(1);
+});

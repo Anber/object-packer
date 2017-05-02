@@ -102,6 +102,7 @@
 
     var SETTINGS_KEY = getKey('settings');
     var ON_UPDATE_KEY = getKey('onUpdate');
+    var ON_ERROR_KEY = getKey('onError');
 
     function getSettings() {
         if (!this[SETTINGS_KEY]) {
@@ -247,7 +248,16 @@
                 currentValue = value;
 
                 if (this[ON_UPDATE_KEY]) {
-                    this[ON_UPDATE_KEY].apply(this, _toConsumableArray(pack(this)));
+                    if (this[ON_ERROR_KEY]) {
+                        try {
+                            var packed = pack(this);
+                            this[ON_UPDATE_KEY].apply(this, _toConsumableArray(packed));
+                        } catch (ex) {
+                            this[ON_ERROR_KEY](ex);
+                        }
+                    } else {
+                        this[ON_UPDATE_KEY].apply(this, _toConsumableArray(pack(this)));
+                    }
                 }
             },
             get: function get() {
@@ -292,7 +302,10 @@
         return createDefaultField(descriptor);
     };
 
-    function track(callback) {
+    function track(callback, onError) {
         this[ON_UPDATE_KEY] = callback;
+        if (onError) {
+            this[ON_ERROR_KEY] = onError;
+        }
     }
 });

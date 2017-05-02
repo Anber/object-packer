@@ -7,6 +7,7 @@ const getKey = name => (typeof Symbol === 'function' ? Symbol(name) : `OBJECT_PA
 
 const SETTINGS_KEY = getKey('settings');
 const ON_UPDATE_KEY = getKey('onUpdate');
+const ON_ERROR_KEY = getKey('onError');
 
 function getSettings() {
     if (!this[SETTINGS_KEY]) {
@@ -122,7 +123,16 @@ function createDefaultField(descriptor) {
             currentValue = value;
 
             if (this[ON_UPDATE_KEY]) {
-                this[ON_UPDATE_KEY](...pack(this));
+                if (this[ON_ERROR_KEY]) {
+                    try {
+                        const packed = pack(this);
+                        this[ON_UPDATE_KEY](...packed);
+                    } catch (ex) {
+                        this[ON_ERROR_KEY](ex);
+                    }
+                } else {
+                    this[ON_UPDATE_KEY](...pack(this));
+                }
             }
         },
         get() {
@@ -161,6 +171,9 @@ packable.external = (target, key, descriptor) => {
     return createDefaultField(descriptor);
 };
 
-export function track(callback) {
+export function track(callback, onError) {
     this[ON_UPDATE_KEY] = callback;
+    if (onError) {
+        this[ON_ERROR_KEY] = onError;
+    }
 }
