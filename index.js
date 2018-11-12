@@ -3,7 +3,11 @@ import { decode, encode } from 'base64-arraybuffer';
 import md5 from 'js-md5';
 import invariant from 'invariant';
 
-const getKey = name => (typeof Symbol === 'function' ? Symbol(name) : `OBJECT_PACKER__${name.toUpperCase()}`);
+const getKey = (...name) => (
+    typeof Symbol === 'function'
+        ? Symbol(name)
+        : `OBJECT_PACKER__${name.join('__').toUpperCase()}`
+);
 
 const SETTINGS_KEY = getKey('settings');
 const ON_UPDATE_KEY = getKey('onUpdate');
@@ -115,12 +119,13 @@ export function unpack(Cls, packed, props, constructorArgs = []) {
     return instance;
 }
 
-function createDefaultField(descriptor) {
-    let currentValue = descriptor.initializer();
+function createDefaultField(key, descriptor) {
+    const valueField = getKey(key, 'value');
+    const initValue = descriptor.initializer();
 
     return {
         set(value) {
-            currentValue = value;
+            this[valueField] = value;
 
             if (this[ON_UPDATE_KEY]) {
                 if (this[ON_ERROR_KEY]) {
@@ -136,14 +141,18 @@ function createDefaultField(descriptor) {
             }
         },
         get() {
-            return currentValue;
-        }
+            if (valueField in this) {
+                return this[valueField];
+            }
+
+            return initValue;
+        },
     };
 }
 
 packable.custom = (size, mappers) => (target, key, descriptor) => {
     target.constructor::getSettings().packers.push([size, key, mappers]);
-    return createDefaultField(descriptor);
+    return createDefaultField(key, descriptor);
 };
 
 packable.flag = packable.custom(1, {
@@ -168,7 +177,7 @@ packable.integer = maxValue => packable.custom(Math.ceil(Math.log2(maxValue + 1)
 
 packable.external = (target, key, descriptor) => {
     target.constructor::getSettings().external.push([key]);
-    return createDefaultField(descriptor);
+    return createDefaultField(key, descriptor);
 };
 
 export function track(callback, onError) {
